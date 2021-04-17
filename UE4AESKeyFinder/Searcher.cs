@@ -86,8 +86,16 @@ public class Searcher
                     if (this.ProcessMemory[addr] != verify_1 && this.ProcessMemory[addr] != 0xE9) // Same for all UE4 games
                     {
                         // Sometimes one keypart has 4 useless bytes at the end, just skip it if the 3 bytes after it match the new keypart start
-                        if (this.ProcessMemory[addr + 4] != verify_1 && this.ProcessMemory[addr + 5] != verify_2 && this.ProcessMemory[addr + 6] != verify_3) c = true;
-                        addr += 4;
+                        // JMP Right after it is possible too
+                        if (this.ProcessMemory[addr] == 0x0F && this.ProcessMemory[addr + 4] == 0xE9)
+                        {
+                            addr += 4; // Skip the useless bytes
+                            // jump to the address and check if the bytes are valid
+                            addr = FollowJMP(addr);
+                            if (this.ProcessMemory[addr] != verify_1 && this.ProcessMemory[addr + 1] != verify_2 && this.ProcessMemory[addr + 2] != verify_3) c = true;
+                        }
+                        else if (this.ProcessMemory[addr + 4] != verify_1 && this.ProcessMemory[addr + 5] != verify_2 && this.ProcessMemory[addr + 6] != verify_3) c = true;
+                        else addr += 4;
                     };
 
                     if (this.ProcessMemory[addr] == 0xE9) addr = FollowJMP(addr);
@@ -113,10 +121,10 @@ public class Searcher
                             for (int xx = 0; xx < 30; xx++)
                             {
                                 addr = addr + xx;
-                                if (this.ProcessMemory[addr] == 0x48) break;
+                                if (this.ProcessMemory[addr] == 0x48 && this.ProcessMemory[addr] == 0x8D) break;
                             }
                         };
-                        if (this.ProcessMemory[addr] != 0x48) c = true;
+                        if (this.ProcessMemory[addr] != 0x48 && this.ProcessMemory[addr] == 0x8D) c = true;
                         // I think it always ends with 48 8D 64 24 08, correct me if I am wrong...
                     }
                     if (c) break;

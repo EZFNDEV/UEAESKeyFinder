@@ -1,6 +1,7 @@
 It can be really difficult to get the AES Key of a game if you do not know what you are doing, I remember when I didnt know how to get it so I decided to make a tool that makes it easier for beginnners
 
 ## Tested Games:
+Fortnite Season 2.4.2 (Memory) (UE4.19)  
 ShooterGame (Memory) (UE4.20.3)  
 Fortnite Season 6.3 (Memory) (UE4.23)  
 Fortnite Season 9.1 (Memory) (UE4.23)  
