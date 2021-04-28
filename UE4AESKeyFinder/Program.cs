@@ -44,6 +44,7 @@ namespace UE4AESKeyFinder
                         {
                             Console.WriteLine($"\nFound {p.ProcessName}");
                             searcher = new Searcher(p);
+                            found = true;
                             break;
                         }
                     }
