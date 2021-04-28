@@ -11,10 +11,12 @@ public class Searcher
     private ulong AllocationBase;
     private byte[] ProcessMemory;
 
-    public Searcher(Process p, IntPtr hProc)
+    public Searcher() { }
+
+    public Searcher(Process p)
     {
         Process = p;
-        hProcess = hProc;
+        hProcess = p.Handle;
         AllocationBase = (ulong)p.MainModule.BaseAddress;
         ProcessMemory = new byte[p.MainModule.ModuleMemorySize];
 

@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 using static Searcher;
 
 namespace UE4AESKeyFinder
 {
     class Program
     {
+        [DllImport("ntdll.dll", PreserveSig = false)]
+        public static extern void NtSuspendProcess(IntPtr processHandle);
         public static byte[] GetHex(string hex)
         {
             var r = new byte[hex.Length / 2];
@@ -17,54 +20,78 @@ namespace UE4AESKeyFinder
         }
         static void Main(string[] args)
         {
+            Searcher searcher = new Searcher();
+            Process game = new Process();
+
             long TimeMs = 0;
             Dictionary<ulong, string> aesKeys = new Dictionary<ulong, string>();
 
-            // Always used to work but now that I want to release it it doesnt -.-
-            // Console.WriteLine("Do you want to use a dump file, its recommended (y/n)");
-            bool UseDump = false; // Console.ReadLine() == "y";
+            Console.Write("Please select from where you want to get the AES Key\n0: Memory\n1: File\n2: Dump File\n\nUse: ");
 
-            if (UseDump)
+            char method = (char)Console.Read();
+            switch (method)
             {
-                Console.WriteLine("Please enter the file path: ");
-                string Path = Console.ReadLine().Replace("\"", "");
-                if (!File.Exists(Path))
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Failed to find the dump file.");
-                    return;
-                }
+                case '0':
+                    Console.Write("Enter the name or id of the process: ");
+                    Console.Read();
+                    Console.Read();
+                    string ProcessName = Console.ReadLine();
 
-                Searcher searcher = new Searcher(File.ReadAllBytes(Path));
-                aesKeys = searcher.FindAllPattern(out long x);
-                TimeMs = x;
-            }
-            else
-            {
-                Console.WriteLine("Enter the name or id of the process: ");
-                string ProcessName = Console.ReadLine();
-
-                bool found = false;
-                foreach (Process p in Process.GetProcesses())
-                {
-                    if (p.ProcessName == ProcessName || p.Id.ToString() == ProcessName)
+                    bool found = false;
+                    foreach (Process p in Process.GetProcesses())
                     {
-                        Console.WriteLine($"\nFound {p.ProcessName}");
-                        Searcher searcher = new Searcher(p, Win32.OpenProcess(0x0010, false, p.Id));
-                        aesKeys = searcher.FindAllPattern(out long x);
-                        TimeMs = x;
-                        found = true;
-                        break;
+                        if (p.ProcessName == ProcessName || p.Id.ToString() == ProcessName)
+                        {
+                            Console.WriteLine($"\nFound {p.ProcessName}");
+                            searcher = new Searcher(p);
+                            break;
+                        }
                     }
-                }
-                if (!found)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Failed to find the process.");
-                    Console.ReadLine();
-                    return;
-                }
+                    if (!found)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Failed to find the process.");
+                        Console.ReadLine();
+                        return;
+                    }
+                    break;
+                case '1':
+                    Console.Write("Please enter the file path: ");
+                    Console.Read();
+                    Console.Read();
+                    string path2 = Console.ReadLine().Replace("\"", "");
+                    if (!File.Exists(path2))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Failed to find the dump file.");
+                        return;
+                    }
+
+                    game = new Process() { StartInfo = { FileName = path2 } };
+                    game.Start();
+                    Thread.Sleep(1000);
+                    // Not required to fully load
+                    NtSuspendProcess(game.Handle);
+
+                    searcher = new Searcher(game);
+                    break;
+                case '2':
+                    Console.Write("Please enter the file path: ");
+                    Console.Read();
+                    Console.Read();
+                    string path = Console.ReadLine().Replace("\"", "");
+                    if (!File.Exists(path))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Failed to find the dump file.");
+                        return;
+                    }
+
+                    searcher = new Searcher(File.ReadAllBytes(path));
+                    break;
             }
+
+            aesKeys = searcher.FindAllPattern(out long x);
 
             if (aesKeys.Count > 0)
             {
@@ -80,8 +107,9 @@ namespace UE4AESKeyFinder
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("\nFailed to find any AES Keys.");
-                Console.ReadLine();
             }
+
+            if (method == '1') try { game.Kill(); } catch { };
 
             Console.ReadLine();
         }
