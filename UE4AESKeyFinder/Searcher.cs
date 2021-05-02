@@ -39,11 +39,7 @@ public class Searcher
     }
     public int FollowJMP(int addr)
     {
-        byte[] jmp = this.ProcessMemory[(addr + 1)..(addr + 1 + 4)].Reverse<byte>().ToArray();
-        jmp[3] += 5; // JMP instruction length
-
-        addr = (int)addr + (int)Convert.ToInt32(BitConverter.ToString(jmp).Replace("-", ""), 16);
-        // Auto follow other jmps
+        addr = (BitConverter.ToInt32(this.ProcessMemory[(addr + 1)..(addr + 1 + 4)].ToArray()) + 5) + addr;
         if ((this.ProcessMemory[addr] == 0x0F && this.ProcessMemory[addr + 4] == 0xE9)) return FollowJMP(addr + 4);
 
         return addr;

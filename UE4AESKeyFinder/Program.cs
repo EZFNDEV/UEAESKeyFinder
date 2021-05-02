@@ -23,9 +23,6 @@ namespace UE4AESKeyFinder
             Searcher searcher = new Searcher();
             Process game = new Process();
 
-            long TimeMs = 0;
-            Dictionary<ulong, string> aesKeys = new Dictionary<ulong, string>();
-
             Console.Write("Please select from where you want to get the AES Key\n0: Memory\n1: File\n2: Dump File\n\nUse: ");
 
             char method = (char)Console.Read();
@@ -92,12 +89,12 @@ namespace UE4AESKeyFinder
                     break;
             }
 
-            aesKeys = searcher.FindAllPattern(out long x);
+            Dictionary<ulong, string> aesKeys = searcher.FindAllPattern(out long took);
 
             if (aesKeys.Count > 0)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"\nFound {aesKeys.Count} AES Keys in {TimeMs}ms");
+                Console.WriteLine($"\nFound {aesKeys.Count} AES Keys in {took}ms");
                 Console.ForegroundColor = ConsoleColor.White;
                 foreach (KeyValuePair<ulong, string> o in aesKeys)
                 {
