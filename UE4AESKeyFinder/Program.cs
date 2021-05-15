@@ -23,9 +23,10 @@ namespace UE4AESKeyFinder
             Searcher searcher = new Searcher();
             Process game = new Process();
 
-            Console.Write("Please select from where you want to get the AES Key\n0: Memory\n1: File\n2: Dump File\n\nUse: ");
+            Console.Write("Please select from where you want to get the AES Key\n0: Memory\n1: File\n2: Dump File\n3. LibUE4.so File\n4. APK File\nUse: ");
 
             char method = (char)Console.Read();
+            string path;
             switch (method)
             {
                 case '0':
@@ -57,15 +58,15 @@ namespace UE4AESKeyFinder
                     Console.Write("Please enter the file path: ");
                     Console.Read();
                     Console.Read();
-                    string path2 = Console.ReadLine().Replace("\"", "");
-                    if (!File.Exists(path2))
+                    path = Console.ReadLine().Replace("\"", "");
+                    if (!File.Exists(path))
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine("Failed to find the dump file.");
                         return;
                     }
 
-                    game = new Process() { StartInfo = { FileName = path2 } };
+                    game = new Process() { StartInfo = { FileName = path } };
                     game.Start();
                     Thread.Sleep(1000);
                     // Not required to fully load
@@ -77,7 +78,7 @@ namespace UE4AESKeyFinder
                     Console.Write("Please enter the file path: ");
                     Console.Read();
                     Console.Read();
-                    string path = Console.ReadLine().Replace("\"", "");
+                    path = Console.ReadLine().Replace("\"", "");
                     if (!File.Exists(path))
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
@@ -86,6 +87,33 @@ namespace UE4AESKeyFinder
                     }
 
                     searcher = new Searcher(File.ReadAllBytes(path));
+                    break;
+                case '3':
+                    Console.Write("Please enter the file path: ");
+                    Console.Read();
+                    Console.Read();
+                    path = Console.ReadLine().Replace("\"", "");
+                    if (!File.Exists(path))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Failed to find the lib.");
+                        return;
+                    }
+
+                    searcher = new Searcher(File.ReadAllBytes(path), true);
+                    break;
+                case '4':
+                    Console.Write("Please enter the file path: ");
+                    Console.Read();
+                    Console.Read();
+                    path = Console.ReadLine().Replace("\"", "");
+                    if (!File.Exists(path))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Failed to find the apk.");
+                        return;
+                    }
+                    searcher = new Searcher(File.ReadAllBytes(path), true, true);
                     break;
             }
 

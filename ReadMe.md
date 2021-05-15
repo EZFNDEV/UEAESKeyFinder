@@ -14,6 +14,7 @@ Fortnite Season 15.5 (Memory) (UE4.26)
 Fortnite Season 16.2 (Memory) (UE4.26)  
 ShooterGame (Memory) (UE4.26.1)  
 Fortnite Season 16.3 (Memory) (UE4.26.1)  
+Fortnite Season 16.4 (APK) (UE4.26.1)  
 
 ### You should manually start games like Fortnite, otherwise this tool could fail to read the process memory (\FortniteGame\Binaries\Win64\FortniteClient-Win64-Shipping.exe)
 #### If this doesn't work for you just make a open a new issue and I will try to add support for your game :)
