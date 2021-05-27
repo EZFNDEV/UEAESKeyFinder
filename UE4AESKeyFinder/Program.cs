@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using static Searcher;
 
-namespace UE4AESKeyFinder
+namespace UEAesKeyFinder
 {
     class Program
     {
