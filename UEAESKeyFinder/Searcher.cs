@@ -1,6 +1,4 @@
-﻿using Gee.External.Capstone;
-using Gee.External.Capstone.Arm64;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -10,6 +8,8 @@ using System.Runtime.InteropServices;
 
 public class Searcher
 {
+    private const int PAGE_SIZE = 4000;
+
     private bool useUE4Lib = false;
 
     private IntPtr hProcess;
@@ -114,6 +114,43 @@ public class Searcher
 
         return addr;
     }
+    public int GetPageAddress(int Addr, int PageSize)
+    {
+        // log2
+        PageSize |= PageSize >> 1;
+        PageSize |= PageSize >> 2;
+        PageSize |= PageSize >> 4;
+        PageSize |= PageSize >> 8;
+        PageSize |= PageSize >> 16;
+        int bits_page_offset = new List<int>() { 0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30, 8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31 }[(PageSize * 0x07C4ACDD) >> 27];
+
+        return (Addr >> (bits_page_offset - 1)) << (bits_page_offset - 1);
+    }
+    public int DecodeADRP(int adrp) // https://chromium.googlesource.com/chromiumos/third_party/binutils/+/refs/heads/stabilize-7374.B/gold/aarch64.cc#150
+    {
+        const int mask19 = (1 << 19) - 1;
+        const int mask2 = 3;
+
+        // 21-bit imm encoded in adrp.
+        int imm = ((adrp >> 29) & mask2) | (((adrp >> 5) & mask19) << 2);
+        // Retrieve msb of 21-bit-signed imm for sign extension.
+        int msbt = (imm >> 20) & 1;
+        // Real value is imm multipled by 4k. Value now has 33-bit information.
+        int value = imm << 12;
+        // Sign extend to 64-bit by repeating msbt 31 (64-33) times and merge it
+        // with value.
+        return ((((int)(1) << 32) - msbt) << 33) | value;
+    }
+    public int GetADRPAddress(int ADRPLoc)
+    {
+        int ADRP = DecodeADRP(BitConverter.ToInt32(this.ProcessMemory, ADRPLoc));
+        int ADD = BitConverter.ToInt32(this.ProcessMemory, ADRPLoc + 4);
+
+        int imm12 = (ADD & 0x3ffc00) >> 10;
+        if ((ADD & 0xc00000) != 0) imm12 <<= 12;
+
+        return GetPageAddress(ADRPLoc, PAGE_SIZE) + ADRP + imm12;
+    }
     public Dictionary<ulong, string> FindAllPattern(out long t)
     {
         Stopwatch timer = Stopwatch.StartNew();
@@ -149,30 +186,9 @@ public class Searcher
                 if (this.ProcessMemory[i + 11] != 0xD6) continue;
 
                 aesKey = "";
-                ulong aesKeyAddr = 0;
-                // TODO: Remove capstone and manaully get the label for adrp and add
-                // NOTE: doesnt work for older versions (15.4 still works) (they work a bit different but kinda easy to fix (next update))
-                // I totally suck with arm64, if you know how to improve this (without capstone would be best) feel free to make a pull request
-                uint PAGE_MASK = 0xFFFFF000;
-                const Arm64DisassembleMode disassembleMode = Arm64DisassembleMode.Arm;
-                using (CapstoneArm64Disassembler disassembler = CapstoneDisassembler.CreateArm64Disassembler(disassembleMode))
-                {
-                    disassembler.EnableInstructionDetails = true;
-                    disassembler.DisassembleSyntax = DisassembleSyntax.Intel;
-
-                    Arm64Instruction[] instructions = disassembler.Disassemble(this.ProcessMemory[(i - 8)..i]); // get the first instruction
-
-                    string adrp_s = instructions[0].Operand.Split(", #")[instructions[0].Operand.Split(", #").Length - 1];
-                    ulong adrp = ulong.Parse(adrp_s[2..(adrp_s.Length)], System.Globalization.NumberStyles.HexNumber);
-
-                    string add_s = instructions[1].Operand.Split(", #")[instructions[1].Operand.Split(", #").Length - 1];
-                    ulong add = ulong.Parse(add_s[2..(add_s.Length)], System.Globalization.NumberStyles.HexNumber);
-
-                    aesKeyAddr = ((ulong)(i & PAGE_MASK) + adrp + add) & 0xFFFFFFFF;
-                }
-
-                aesKey += BitConverter.ToString(this.ProcessMemory[(int)aesKeyAddr..(int)(aesKeyAddr + 32)]).ToString().Replace("-", "");
-                offsets.Add(AllocationBase + aesKeyAddr, $"0x{aesKey}");
+                int aesKeyAddr = GetADRPAddress(i - 8);
+                aesKey += BitConverter.ToString(this.ProcessMemory[aesKeyAddr..(aesKeyAddr + 32)]).ToString().Replace("-", "");
+                offsets.Add(AllocationBase + (ulong)aesKeyAddr, $"0x{aesKey}");
             }
         }
         else
