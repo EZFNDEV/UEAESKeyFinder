@@ -51,20 +51,22 @@ public class Searcher
             int libUE4Offset = 0;
             for (int i = bytes.Length - 1; i > 0; i--)
             {
-                // Feel free to make a loop here
-                if (bytes[i] != 0x41) continue;
-                if (bytes[i + 1] != 0x50) continue;
-                if (bytes[i + 2] != 0x4B) continue;
-                if (bytes[i + 3] != 0x20) continue;
-                if (bytes[i + 4] != 0x53) continue;
-                if (bytes[i + 5] != 0x69) continue;
-                if (bytes[i + 6] != 0x67) continue;
-                if (bytes[i + 7] != 0x20) continue;
-                if (bytes[i + 8] != 0x42) continue;
-                if (bytes[i + 9] != 0x6C) continue;
-                if (bytes[i + 10] != 0x6F) continue;
-                if (bytes[i + 11] != 0x63) continue;
-                if (bytes[i + 12] != 0x6B) continue;
+                if (
+                    bytes[i] != 0x41 ||
+                    bytes[i + 1] != 0x50 ||
+                    bytes[i + 1] != 0x50 ||
+                    bytes[i + 2] != 0x4B ||
+                    bytes[i + 3] != 0x20 ||
+                    bytes[i + 4] != 0x53 ||
+                    bytes[i + 5] != 0x69 ||
+                    bytes[i + 6] != 0x67 ||
+                    bytes[i + 7] != 0x20 ||
+                    bytes[i + 8] != 0x42 ||
+                    bytes[i + 9] != 0x6C ||
+                    bytes[i + 10] != 0x6F ||
+                    bytes[i + 11] != 0x63 ||
+                    bytes[i + 12] != 0x6B
+                ) continue;
 
                 libUE4Offset = i;
                 break;
@@ -74,7 +76,6 @@ public class Searcher
             for (int i = libUE4Offset; i < bytes.Length - 1 - libUE4.Length - 1; i++)
             {
                 if (bytes[i] != libUE4[0]) continue;
-                // Now you know why I never didnt do it on the other things lmao
                 bool c = false;
                 for (int ii = 0; ii < libUE4.Length - 1; ii++)
                 {
@@ -88,6 +89,7 @@ public class Searcher
 
                 libUE4Offset = BitConverter.ToInt32(bytes[(i - 4)..(i)]);
             }
+            if (libUE4Offset == 0) throw new Exception("Failed to read LibUE4.so, patterns were not found!");
 
             // Read compressed/uncompressed size from the header and then skip it
             int compressed = BitConverter.ToInt32(bytes[(libUE4Offset + 18)..(libUE4Offset + 22)]);
@@ -256,7 +258,7 @@ public class Searcher
                             // if (this.ProcessMemory[addr] == verify_1 && this.ProcessMemory[addr + 1] == verify_2) c = true;
                             if (this.ProcessMemory[addr] == 0xE9) addr = FollowJMP(addr);
                             // && this.ProcessMemory[addr + 1] != 0x8D && this.ProcessMemory[addr + 1] != 0x64 && this.ProcessMemory[addr + 1] != 0x24 && this.ProcessMemory[addr + 1] != 0x08
-                            if (this.ProcessMemory[addr] != 0x48)
+                            if (this.ProcessMemory[addr] != 0xC3 && this.ProcessMemory[addr] != 0x48)
                             {
                                 // There might be movups so lets check 50 bytes if we still get 48 8D
                                 if (this.ProcessMemory[addr] != 0x0F) c = true;
@@ -265,9 +267,9 @@ public class Searcher
                                     addr = addr + xx;
                                     if (this.ProcessMemory[addr] == 0x48 && this.ProcessMemory[addr] == 0x8D) break;
                                 }
-                            };
-                            if (this.ProcessMemory[addr] != 0x48 && this.ProcessMemory[addr] == 0x8D) c = true;
-                            // I think it always ends with 48 8D 64 24 08, correct me if I am wrong...
+                                // We should probably delete this...
+                                if (this.ProcessMemory[addr] != 0x48 && this.ProcessMemory[addr] == 0x8D) c = true;
+                            }
                         }
                         if (c) break;
                     }
