@@ -116,19 +116,7 @@ public class Searcher
 
         return addr;
     }
-    public int GetPageAddress(int Addr, int PageSize)
-    {
-        // log2
-        PageSize |= PageSize >> 1;
-        PageSize |= PageSize >> 2;
-        PageSize |= PageSize >> 4;
-        PageSize |= PageSize >> 8;
-        PageSize |= PageSize >> 16;
-        int bits_page_offset = new List<int>() { 0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30, 8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31 }[(PageSize * 0x07C4ACDD) >> 27];
-
-        return (Addr >> (bits_page_offset - 1)) << (bits_page_offset - 1);
-    }
-    public int DecodeADRP(int adrp) // https://chromium.googlesource.com/chromiumos/third_party/binutils/+/refs/heads/stabilize-7374.B/gold/aarch64.cc#150
+    public UInt64 DecodeADRP(int adrp) // https://chromium.googlesource.com/chromiumos/third_party/binutils/+/refs/heads/stabilize-7374.B/gold/aarch64.cc#150
     {
         const int mask19 = (1 << 19) - 1;
         const int mask2 = 3;
@@ -141,17 +129,20 @@ public class Searcher
         int value = imm << 12;
         // Sign extend to 64-bit by repeating msbt 31 (64-33) times and merge it
         // with value.
-        return ((((int)(1) << 32) - msbt) << 33) | value;
+        return (UInt64)(((((int)(1) << 32) - msbt) << 33) | value);
     }
-    public int GetADRPAddress(int ADRPLoc)
+    public UInt64 DecodeADD(int add)
     {
-        int ADRP = DecodeADRP(BitConverter.ToInt32(this.ProcessMemory, ADRPLoc));
-        int ADD = BitConverter.ToInt32(this.ProcessMemory, ADRPLoc + 4);
+        var imm12 = (add & 0x3ffc00) >> 10;
+        if ((imm12 & 0xc00000) != 0) imm12 <<= 12;
+        return (UInt64)imm12;
+    }
+    public int GetADRLAddress(int ADRPLoc)
+    {
+        UInt64 ADRP = DecodeADRP(BitConverter.ToInt32(this.ProcessMemory, ADRPLoc));
+        UInt64 ADD = DecodeADD(BitConverter.ToInt32(this.ProcessMemory, ADRPLoc + 4));
 
-        int imm12 = (ADD & 0x3ffc00) >> 10;
-        if ((ADD & 0xc00000) != 0) imm12 <<= 12;
-
-        return GetPageAddress(ADRPLoc, PAGE_SIZE) + ADRP + imm12;
+        return (int)((((UInt64)ADRPLoc & 0xFFFFF000) + ADRP + ADD) & 0xFFFFFFFF);
     }
     public Dictionary<ulong, string> FindAllPattern(out long t)
     {
@@ -166,6 +157,8 @@ public class Searcher
             for (int i = 0; i < ProcessMemory.Length - 10; i++)
             {
                 // if this gets no results (or too many) for some reason we could also get the addr that calls this...
+
+                // 01 01 40 AD 01 00 00 AD C0 03 5F D6
 
                 // First instruction is the adrp, then add...
 
@@ -186,10 +179,15 @@ public class Searcher
                 if (this.ProcessMemory[i + 9] != 0x03) continue;
                 if (this.ProcessMemory[i + 10] != 0x5F) continue;
                 if (this.ProcessMemory[i + 11] != 0xD6) continue;
-
+                
                 aesKey = "";
-                int aesKeyAddr = GetADRPAddress(i - 8);
+                int aesKeyAddr = GetADRLAddress(i - 8);
+
                 aesKey += BitConverter.ToString(this.ProcessMemory[aesKeyAddr..(aesKeyAddr + 32)]).ToString().Replace("-", "");
+                offsets.Add(AllocationBase + (ulong)aesKeyAddr, $"0x{aesKey}");
+
+                aesKeyAddr += 0x1000; // Please fix this, idk when its + 0x1000 and when not....
+                aesKey = BitConverter.ToString(this.ProcessMemory[aesKeyAddr..(aesKeyAddr + 32)]).ToString().Replace("-", "");
                 offsets.Add(AllocationBase + (ulong)aesKeyAddr, $"0x{aesKey}");
             }
         }
