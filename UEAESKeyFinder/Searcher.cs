@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 
 public class Searcher
 {
@@ -108,6 +109,30 @@ public class Searcher
         }
 
         useUE4Lib = useAndroid;
+    }
+    public string SearchEngineVersion()
+    {
+        // We search backwards because its mostly at the end
+        byte[] ProductVersion = new byte[] { 0x01, 0x00, 0x50, 0x00, 0x72, 0x00, 0x6F, 0x00, 0x64, 0x00, 0x75, 0x00, 0x63, 0x00, 0x74, 0x00, 0x56, 0x00, 0x65, 0x00, 0x72, 0x00, 0x73, 0x00, 0x69, 0x00, 0x6F, 0x00, 0x6E, 0x00, 0x00, 0x00 };
+        for (int i = ProcessMemory.Length - 1; i > 0; i--)
+        {
+            if (this.ProcessMemory[i] != ProductVersion[0]) continue;
+            bool c = false;
+            for (int ii = 0; ii < ProductVersion.Length - 1; ii++)
+            {
+                if (this.ProcessMemory[ii + i] != ProductVersion[ii])
+                {
+                    c = true;
+                    break;
+                };
+            };
+            if (c) continue;
+
+            UnicodeEncoding unicodeEncoding = new UnicodeEncoding();
+            return new string(unicodeEncoding.GetChars(this.ProcessMemory[(i + ProductVersion.Length - 2)..(i + ProductVersion.Length - 2 + 14)], 2, 12));
+        }
+
+        return "";
     }
     public int FollowJMP(int addr)
     {

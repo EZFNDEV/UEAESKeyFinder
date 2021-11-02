@@ -27,6 +27,7 @@ namespace UEAesKeyFinder
 
             char method = (char)Console.Read();
             string path;
+            string EngineVersion;
             switch (method)
             {
                 case '0':
@@ -53,6 +54,11 @@ namespace UEAesKeyFinder
                         Console.ReadLine();
                         return;
                     }
+                    EngineVersion = searcher.SearchEngineVersion();
+                    if (EngineVersion != "")
+                    {
+                        Console.WriteLine($"Engine Version: {EngineVersion}");
+                    }
                     break;
                 case '1':
                     Console.Write("Please enter the file path: ");
@@ -73,6 +79,11 @@ namespace UEAesKeyFinder
                     NtSuspendProcess(game.Handle);
 
                     searcher = new Searcher(game);
+                    EngineVersion = searcher.SearchEngineVersion();
+                    if (EngineVersion != "")
+                    {
+                        Console.WriteLine($"Engine Version: {EngineVersion}");
+                    }
                     break;
                 case '2':
                     Console.Write("Please enter the file path: ");
@@ -87,6 +98,11 @@ namespace UEAesKeyFinder
                     }
 
                     searcher = new Searcher(File.ReadAllBytes(path));
+                    EngineVersion = searcher.SearchEngineVersion();
+                    if (EngineVersion != "")
+                    {
+                        Console.WriteLine($"Engine Version: {EngineVersion}");
+                    }
                     break;
                 case '3':
                     Console.Write("Please enter the file path: ");
@@ -122,7 +138,7 @@ namespace UEAesKeyFinder
             if (aesKeys.Count > 0)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"\nFound {aesKeys.Count} AES Keys in {took}ms");
+                Console.WriteLine(aesKeys.Count == 1 ? $"\nFound {aesKeys.Count} AES Key in {took}ms" : $"\nFound {aesKeys.Count} AES Keys in {took}ms");
                 Console.ForegroundColor = ConsoleColor.White;
                 foreach (KeyValuePair<ulong, string> o in aesKeys)
                 {
