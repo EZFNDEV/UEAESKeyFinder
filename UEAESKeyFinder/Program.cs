@@ -27,7 +27,7 @@ namespace UEAesKeyFinder
 
             char method = (char)Console.Read();
             string path;
-            string EngineVersion;
+            string EngineVersion = "4.18.0";
             switch (method)
             {
                 case '0':
@@ -79,6 +79,7 @@ namespace UEAesKeyFinder
                     NtSuspendProcess(game.Handle);
 
                     searcher = new Searcher(game);
+                    searcher.SetFilePath(path);
                     EngineVersion = searcher.SearchEngineVersion();
                     if (EngineVersion != "")
                     {
@@ -98,6 +99,7 @@ namespace UEAesKeyFinder
                     }
 
                     searcher = new Searcher(File.ReadAllBytes(path));
+                    searcher.SetFilePath(path);
                     EngineVersion = searcher.SearchEngineVersion();
                     if (EngineVersion != "")
                     {
@@ -140,10 +142,22 @@ namespace UEAesKeyFinder
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine(aesKeys.Count == 1 ? $"\nFound {aesKeys.Count} AES Key in {took}ms" : $"\nFound {aesKeys.Count} AES Keys in {took}ms");
                 Console.ForegroundColor = ConsoleColor.White;
-                foreach (KeyValuePair<ulong, string> o in aesKeys)
+                int EngineVersionI = 17;
+                if (EngineVersion != "") EngineVersionI = Convert.ToInt32(EngineVersion.Split(".")[1]);
+                if (EngineVersionI < 18)
                 {
-                    Console.WriteLine($"{aesKeys[o.Key]} ({System.Convert.ToBase64String(GetHex(aesKeys[o.Key][2..aesKeys[o.Key].Length]))}) at {o.Key}");
-                };
+                    foreach (KeyValuePair<ulong, string> o in aesKeys)
+                    {
+                        Console.WriteLine($"{aesKeys[o.Key]} at {o.Key}");
+                    };
+                }
+                else
+                {
+                    foreach (KeyValuePair<ulong, string> o in aesKeys)
+                    {
+                        Console.WriteLine($"{aesKeys[o.Key]} ({System.Convert.ToBase64String(GetHex(aesKeys[o.Key][2..aesKeys[o.Key].Length]))}) at {o.Key}");
+                    };
+                }
             }
             else
             {
