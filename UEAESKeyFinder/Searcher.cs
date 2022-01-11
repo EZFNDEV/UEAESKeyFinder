@@ -252,7 +252,7 @@ public class Searcher
                     }
                 }
             }
-            else
+            
             {
                 // Based on "?Callback@FEncryptionKeyRegistration@@SAXQEAE@Z"
                 // https://github.com/EpicGames/UnrealEngine/blob/5df54b7ef1714f28fb5da319c3e83d96f0bedf08/Engine/Source/Runtime/Core/Public/Modules/ModuleManager.h#L841

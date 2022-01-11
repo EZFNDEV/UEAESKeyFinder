@@ -28,6 +28,7 @@ namespace UEAesKeyFinder
             char method = (char)Console.Read();
             string path;
             string EngineVersion = "4.18.0";
+            string saveName = "";
             switch (method)
             {
                 case '0':
@@ -42,6 +43,7 @@ namespace UEAesKeyFinder
                         if (p.ProcessName == ProcessName || p.Id.ToString() == ProcessName)
                         {
                             Console.WriteLine($"\nFound {p.ProcessName}");
+                            saveName = p.ProcessName;
                             searcher = new Searcher(p);
                             found = true;
                             break;
@@ -72,6 +74,8 @@ namespace UEAesKeyFinder
                         return;
                     }
 
+                    saveName = path.Split("\\")[path.Split("\\").Length - 1];
+
                     game = new Process() { StartInfo = { FileName = path } };
                     game.Start();
                     Thread.Sleep(1000);
@@ -98,6 +102,8 @@ namespace UEAesKeyFinder
                         return;
                     }
 
+                    saveName = path.Split("\\")[path.Split("\\").Length-1];
+
                     searcher = new Searcher(File.ReadAllBytes(path));
                     searcher.SetFilePath(path);
                     EngineVersion = searcher.SearchEngineVersion();
@@ -111,6 +117,9 @@ namespace UEAesKeyFinder
                     Console.Read();
                     Console.Read();
                     path = Console.ReadLine().Replace("\"", "");
+
+                    saveName = path.Split("\\")[path.Split("\\").Length - 1];
+
                     if (!File.Exists(path))
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
@@ -125,6 +134,9 @@ namespace UEAesKeyFinder
                     Console.Read();
                     Console.Read();
                     path = Console.ReadLine().Replace("\"", "");
+
+                    saveName = path.Split("\\")[path.Split("\\").Length - 1];
+
                     if (!File.Exists(path))
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
@@ -139,8 +151,13 @@ namespace UEAesKeyFinder
 
             if (aesKeys.Count > 0)
             {
+                string WriteToFile = "";
+                string txt = aesKeys.Count == 1 ? $"Found {aesKeys.Count} AES Key in {took}ms\n" : $"Found {aesKeys.Count} AES Keys in {took}ms\n";
+
+                WriteToFile += txt;
+
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine(aesKeys.Count == 1 ? $"\nFound {aesKeys.Count} AES Key in {took}ms" : $"\nFound {aesKeys.Count} AES Keys in {took}ms");
+                Console.Write("\n" + txt);
                 Console.ForegroundColor = ConsoleColor.White;
                 int EngineVersionI = 17;
                 if (EngineVersion != "") EngineVersionI = Convert.ToInt32(EngineVersion.Split(".")[1]);
@@ -148,16 +165,22 @@ namespace UEAesKeyFinder
                 {
                     foreach (KeyValuePair<ulong, string> o in aesKeys)
                     {
-                        Console.WriteLine($"{aesKeys[o.Key]} at {o.Key}");
+                        txt = $"{aesKeys[o.Key]} at {o.Key}\n";
+                        Console.Write(txt);
+                        WriteToFile += txt;
                     };
                 }
                 else
                 {
                     foreach (KeyValuePair<ulong, string> o in aesKeys)
                     {
-                        Console.WriteLine($"{aesKeys[o.Key]} ({System.Convert.ToBase64String(GetHex(aesKeys[o.Key][2..aesKeys[o.Key].Length]))}) at {o.Key}");
+                        txt = $"{aesKeys[o.Key]} ({System.Convert.ToBase64String(GetHex(aesKeys[o.Key][2..aesKeys[o.Key].Length]))}) at {o.Key}\n";
+                        Console.Write(txt);
+                        WriteToFile += txt;
                     };
                 }
+
+                File.WriteAllText(saveName + "_aes_keys.txt", WriteToFile);
             }
             else
             {
